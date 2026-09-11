@@ -33,6 +33,7 @@ Do not commit real values. `.env.example` contains only empty placeholders.
 - Railway web mode is read/write for persisted state but does not start a local Hermes scheduler when `PORT` is present.
 - The Hermes-owned worker runs `python worker.py --once` for one cycle or `python worker.py` for its persistent two-hour loop. It requires the same `DATABASE_URL` and runs where Hermes authentication is available.
 - On Windows, the worker automatically reads `C:\Users\<user>\Desktop\FlyCompany-Hermes.env`; this file is outside the repository and must contain the Railway public database URL.
+- Optional X/Twitter meeting posts are sent after completed cycles when `X_POST_MEETINGS=true` and OAuth 1.0a user credentials are present in that local file: `X_CONSUMER_KEY`, `X_CONSUMER_SECRET`, `X_ACCESS_TOKEN`, and `X_ACCESS_TOKEN_SECRET`. `X_BEARER_TOKEN` is retained for account/API configuration but cannot publish by itself. Posts are English-only summaries capped at 30 words. A failed post never fails or stops a meeting.
 
 ## Model and research
 

@@ -7,6 +7,7 @@ import os
 import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as ET
+from x_publisher import XPublisher
 
 SOURCES = ('https://www.coindesk.com/arc/outboundfeeds/rss', 'https://docs.flap.sh/flap')
 
@@ -170,6 +171,7 @@ class App:
         self.path = Path(path)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self.provider = provider
+        self.x_publisher = XPublisher(os.environ)
         self.database_url = os.environ.get('DATABASE_URL', '').strip()
         self.lock = threading.RLock()
         self.running = False
@@ -314,6 +316,8 @@ class App:
                 state['proposals'].insert(0, dict(id=uuid.uuid4().hex, meetingId=meeting['id'], title='Proposal for human review — not a launch', summary=meeting['summary'], status='pending', createdAt=now(), approvedAt=None, execution='planning-only'))
                 state['proposals'] = state['proposals'][:100]
                 self.save(state)
+            post = self.x_publisher.post(meeting['summary'])
+            meeting['xPost'] = {'posted': post.get('posted', False), 'tweetId': post.get('tweetId'), 'reason': post.get('reason', '')}
         except Exception as exc:
             meeting.update(status='blocked' if isinstance(exc, Blocked) else 'failed', summary=str(exc) if isinstance(exc, Blocked) else 'Provider or network failure (' + type(exc).__name__ + '). No transaction was executed.', endedAt=now())
         finally:
