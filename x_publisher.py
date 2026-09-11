@@ -8,6 +8,7 @@ import secrets
 import time
 import urllib.parse
 import urllib.request
+import urllib.error
 
 
 class XPublisher:
@@ -77,5 +78,7 @@ class XPublisher:
                 body = json.loads(response.read(128001).decode('utf-8'))
             tweet_id = body.get('data', {}).get('id')
             return {'posted': bool(tweet_id), 'tweetId': tweet_id, 'text': text, 'reason': '' if tweet_id else 'X returned no tweet ID'}
+        except urllib.error.HTTPError as exc:
+            return {'posted': False, 'reason': f'X publish failed (HTTP {exc.code})'}
         except Exception as exc:
             return {'posted': False, 'reason': f'X publish failed ({type(exc).__name__})'}
