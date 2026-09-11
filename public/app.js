@@ -9,7 +9,7 @@ if (typeof document !== 'undefined') boot();
 
 function boot() {
   const $=s=>document.querySelector(s), esc=escapeHTML;
-  let state=null, tab='office', selected=null, selectedMeeting=null, replayIndex=-1, replayTimer=null, sceneAPI=null, busy=false, connected=false, lastError='', eventSource=null, eventReconnect=null, eventCursor=0;
+  let state=null, tab='office', selected=null, selectedMeeting=null, replayIndex=-1, replayTimer=null, sceneAPI=null, busy=false, connected=false, lastError='', eventSource=null, eventReconnect=null, eventCursor=0, brainScene=null;
   const date=value=>value&&Number.isFinite(new Date(value).getTime())?new Date(value).toLocaleString([], {month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}):'Not scheduled';
   const agent=id=>state?.agents?.find(a=>a.id===id);
   const meeting=()=>state?.meetings?.find(m=>m.id===selectedMeeting);
@@ -31,7 +31,33 @@ function boot() {
   $('#close-inspector').onclick=()=>setPanel(false);
   $('#toggle-inspector').onclick=()=>setPanel($('#inspector').classList.contains('closed'));
   $('#reset-camera').onclick=()=>{$('.scene-title').hidden=false;sceneAPI?.reset();};
-  function selectAgent(id){$('.scene-title').hidden=true;selected=id;tab='agent';setPanel(true);sceneAPI?.focus(id);renderPanel();renderDock();}
+  function selectAgent(id){$('.scene-title').hidden=true;selected=id;tab='agent';setPanel(true);sceneAPI?.focus(id);renderPanel();renderDock();openBrainModal(id);}
+  function latestInterventions(id){
+    return (state?.meetings||[]).flatMap(m=>(m.messages||[]).filter(msg=>msg.agentId===id).map(msg=>({msg,meeting:m}))).slice(0,5);
+  }
+  function renderBrainInterventions(id){
+    const a=agent(id), target=$('#brain-interventions'); if(!target)return;
+    const items=latestInterventions(id);
+    target.innerHTML=`<div class="brain-interventions-head"><div><div class="brain-modal-role">${esc(a?.role||'Research agent')}</div><h3>${esc(a?.name||'Fly')}</h3></div><div class="brain-modal-section-label">LATEST MEETING INTERVENTIONS</div></div><div class="brain-intervention-list">${items.length?items.map(({msg,meeting:m})=>`<article class="brain-intervention"><span>${esc(date(m.startedAt))} · ${esc(m.status||'meeting')}</span><p>${esc(msg.text)}</p></article>`).join(''):empty('No meeting interventions recorded yet.')}</div>`;
+  }
+  async function openBrainModal(id){
+    const a=agent(id); if(!a)return;
+    $('#brain-modal-title').textContent=`${a.name} · mapped brain`;
+    renderBrainInterventions(id); $('#brain-modal').hidden=false; document.body.classList.add('modal-open');
+    if(brainScene){brainScene.dispose();brainScene=null;}
+    try{
+      const T=await import('three'); const {OrbitControls}=await import('three/addons/controls/OrbitControls.js'); const {GLTFLoader}=await import('three/addons/loaders/GLTFLoader.js');
+      const host=$('#brain-view');host.replaceChildren();const renderer=new T.WebGLRenderer({antialias:true,alpha:true});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setClearColor(0,0);host.append(renderer.domElement);
+      const scene=new T.Scene(),camera=new T.PerspectiveCamera(38,1,.01,100);camera.position.set(0,.05,3.45);const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.enableZoom=false;controls.enablePan=false;controls.autoRotate=true;controls.autoRotateSpeed=1.1;controls.target.set(0,0,0);
+      scene.add(new T.HemisphereLight('#fff7dc','#624d24',2.4));const key=new T.DirectionalLight('#fff0b0',4);key.position.set(2,3,4);scene.add(key);
+      const root=new T.Group();scene.add(root);const loader=new GLTFLoader();
+      const gltf=await loader.loadAsync('/assets/flywire/fly-brain.glb');const content=gltf.scene;content.traverse(o=>{o.visible=true;if(o.isMesh){o.frustumCulled=false;o.material=new T.MeshBasicMaterial({color:'#ffd36a',wireframe:true,transparent:true,opacity:.34,side:T.DoubleSide});}});const box=new T.Box3().setFromObject(content),size=box.getSize(new T.Vector3()),center=box.getCenter(new T.Vector3()),fit=2.7/Math.max(size.x,size.y,size.z);content.scale.setScalar(fit);content.position.set(-center.x*fit,-center.y*fit,-center.z*fit);content.rotation.set(-.08,0,.02);root.add(content);
+      const flyHost=$('#fly-view');flyHost.replaceChildren();const flyRenderer=new T.WebGLRenderer({antialias:true,alpha:true});flyRenderer.setPixelRatio(Math.min(devicePixelRatio,2));flyRenderer.setClearColor(0,0);flyHost.append(flyRenderer.domElement);const flyScene=new T.Scene();const flyCamera=new T.PerspectiveCamera(30,1,.01,100);flyCamera.position.set(0,1.05,3.8);const flyControls=new OrbitControls(flyCamera,flyRenderer.domElement);flyControls.enableDamping=true;flyControls.enableZoom=false;flyControls.enablePan=false;flyControls.autoRotate=true;flyControls.autoRotateSpeed=.8;flyControls.target.set(0,.45,0);flyScene.add(new T.HemisphereLight('#fff8e5','#65543c',2.5));const flyKey=new T.DirectionalLight('#fff3c0',3.5);flyKey.position.set(2,4,3);flyScene.add(flyKey);const {loadFlyModel}=await import('/fly-model.js');const flyModel=await loadFlyModel();const fly=flyModel.createFly();fly.scale.setScalar(.82);fly.position.y=.08;fly.rotation.y=Math.PI*.5;flyScene.add(fly);
+      const resize=()=>{const w=host.clientWidth,h=host.clientHeight;if(w&&h){renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();}const fw=flyHost.clientWidth,fh=flyHost.clientHeight;if(fw&&fh){flyRenderer.setSize(fw,fh,false);flyCamera.aspect=fw/fh;flyCamera.updateProjectionMatrix();}};const ro=new ResizeObserver(resize);ro.observe(host);ro.observe(flyHost);resize();let active=true;renderer.setAnimationLoop(()=>{if(active){controls.update();renderer.render(scene,camera);flyControls.update();flyModel.animateFly(fly,performance.now()/1000,false);flyRenderer.render(flyScene,flyCamera);}});brainScene={dispose(){active=false;ro.disconnect();renderer.setAnimationLoop(null);flyRenderer.setAnimationLoop(null);renderer.dispose();flyRenderer.dispose();controls.dispose();flyControls.dispose();}};
+    }catch(e){$('#brain-loading').textContent='The mapped brain could not be loaded.';console.error(e);}
+  }
+  function closeBrainModal(){if(brainScene){brainScene.dispose();brainScene=null;}$('#brain-modal').hidden=true;document.body.classList.remove('modal-open');}
+  $('#close-brain-modal').onclick=closeBrainModal;$('#brain-modal').onclick=e=>{if(e.target===$('#brain-modal'))closeBrainModal();};document.addEventListener('keydown',e=>{if(e.key==='Escape')closeBrainModal();});
   function renderDock(){
     const agents=state?.agents||[];
     $('#agent-dock').innerHTML=agents.length?agents.slice(0,6).map(a=>`<button class="agent ${selected===a.id?'selected':''}" data-agent="${esc(a.id)}"><span class="agent-avatar">✳</span><span><strong>${esc(a.name)}</strong><small>${esc(a.status||'Unknown')}</small></span></button>`).join(''):'<span class="dock-empty">Waiting for agent identities from the server…</span>';
@@ -62,7 +88,7 @@ function boot() {
   function showMessage(){const msg=meeting()?.messages?.[replayIndex];if(!msg)return;$('#speech').innerHTML=`<strong>${esc(agent(msg.agentId)?.name||msg.agentId)} / TRANSCRIPT REPLAY</strong><p>${esc(msg.text)}</p>`;$('#speech').hidden=false;renderPanel();}
   async function refresh(){try{state=await request('/api/state');connected=true;
     if(!replayTimer){const live=state.meetings?.find(m=>m.status==='running');const msg=live?.messages?.at(-1);if(msg){$('#speech').innerHTML=`<strong>${esc(agent(msg.agentId)?.name||msg.agentId)} / LIVE MEETING</strong><p>${esc(msg.text)}</p>`;$('#speech').hidden=false;}else{$('#speech').hidden=true;}}
-    lastError='';$('#provider-chip').textContent=`${state.provider?.ready?'●':'○'} ${stateLabel(state)}`;$('#schedule-chip').textContent=state.scheduler?.enabled?'Automatic 2h cycle':'Cycle unavailable';$('#next-run').textContent=state.scheduler?.enabled?`Next automatic cycle: ${date(state.scheduler.nextRunAt)}`:'Automatic cycle is unavailable.';renderDock();renderPanel();}catch(e){connected=false;$('#provider-chip').textContent='○ Server disconnected';$('#schedule-chip').textContent='Schedule unavailable';$('#next-run').textContent='Live company state unavailable.';if(lastError!==e.message){notice(`State unavailable: ${e.message}`);lastError=e.message;}renderPanel();}}
+    lastError='';$('#provider-chip').textContent=`${state.provider?.ready?'●':'○'} ${stateLabel(state)}`;$('#schedule-chip').textContent=state.scheduler?.enabled?'Automatic 2h cycle':'Cycle unavailable';$('#next-run').textContent=state.scheduler?.enabled?`Next automatic cycle: ${date(state.scheduler.nextRunAt)}`:'Automatic cycle is unavailable.';renderDock();renderPanel();if(!$('#brain-modal').hidden&&selected)renderBrainInterventions(selected);}catch(e){connected=false;$('#provider-chip').textContent='○ Server disconnected';$('#schedule-chip').textContent='Schedule unavailable';$('#next-run').textContent='Live company state unavailable.';if(lastError!==e.message){notice(`State unavailable: ${e.message}`);lastError=e.message;}renderPanel();}}
   function connectRealtime(){
     if(!('EventSource' in window))return;
     clearTimeout(eventReconnect);eventSource?.close();

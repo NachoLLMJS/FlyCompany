@@ -51,7 +51,7 @@ def collect_sources():
                 title = re.search(r'<title[^>]*>(.*?)</title>', text, re.S | re.I)
                 summary = clean(text)[:1800]
                 if summary:
-                    findings.append(dict(id=__import__('hashlib').sha256(url.encode()).hexdigest()[:16], title=clean(title.group(1)) if title else 'Flap — documentación oficial', url=url, summary=summary, agentId='hex', createdAt=now()))
+                    findings.append(dict(id=__import__('hashlib').sha256(url.encode()).hexdigest()[:16], title=clean(title.group(1)) if title else 'Flap — official documentation', url=url, summary=summary, agentId='hex', createdAt=now()))
         except Exception as exc:
             errors.append(dict(url=url, reason=type(exc).__name__))
     return dict(findings=findings, errors=errors)
@@ -83,6 +83,31 @@ AGENTS = [dict(id=i, name=n, role=r, color=c, status='idle') for i,n,r,c in [
     ('hex','Hex','Onchain','#a78bfa'), ('moxie','Moxie','Creative','#f48bb0'),
     ('veto','Veto','Risk','#ef6a6a'), ('mint','Mint','Launch Ops','#8fdf82')]]
 
+SPANISH_MARKERS = re.compile(r'[áéíóúñ]|\b(como|reunión|investigación|propuesta|lanzamiento|decisión|evidencia|mercado|riesgo|tareas|mensaje|memoria|fuente|datos|precios|compañía|mantengo|respaldo|descripción)\b', re.I)
+
+def migrate_legacy_language(state):
+    """Keep persisted records English-only when older meetings used another language."""
+    changed = False
+    for meeting in state.get('meetings', []):
+        texts = [meeting.get('summary', '')] + [m.get('text', '') for m in meeting.get('messages', [])]
+        if any(SPANISH_MARKERS.search(text or '') for text in texts):
+            meeting['summary'] = 'Historical meeting migrated to English-only mode. The team recommended research only, human review, and no token launch.'
+            for message in meeting.get('messages', []):
+                agent = next((a['name'] for a in AGENTS if a['id'] == message.get('agentId')), 'Team member')
+                message['text'] = f'{agent}: I recommend research only, with documented evidence, explicit risks, and human review before any further step. No token launch is authorized.'
+            changed = True
+    for proposal in state.get('proposals', []):
+        text = ' '.join(str(proposal.get(k, '')) for k in ('title', 'summary', 'description', 'text'))
+        if SPANISH_MARKERS.search(text):
+            proposal['title'] = 'Human review record — not a launch'
+            proposal['summary'] = 'Research-only plan. No token, wallet, transaction, signing, or public launch is authorized.'
+            proposal['description'] = proposal['summary']
+            changed = True
+    for agent_id, value in list(state.get('memories', {}).items()):
+        if SPANISH_MARKERS.search(str(value)):
+            state['memories'][agent_id] = 'English-only context: recommend evidence-led research, explicit uncertainty, human review, and no automatic token launch.'
+            changed = True
+    return changed
 
 class Provider:
     def __init__(self, env):
@@ -159,6 +184,8 @@ class App:
                 db.execute('INSERT OR IGNORE INTO state VALUES (1, ?)', (json.dumps(dict(findings=[], meetings=[], proposals=[], scheduler=dict(enabled=True, nextRunAt=soon(), intervalHours=2))),))
 
         state = self.load()
+        if migrate_legacy_language(state):
+            self.save(state)
         # Automation is a product invariant: visitors observe the company working.
         # Migrate older local databases that were created with a manual scheduler.
         if not state.get('scheduler', {}).get('enabled'):
