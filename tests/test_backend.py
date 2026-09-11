@@ -59,6 +59,19 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(len(saved['messages']), 7)
         self.assertEqual(len(self.app.state()['proposals']), 1)
 
+    def test_run_once_waits_for_the_hermes_meeting_to_finish(self):
+        from unittest.mock import patch
+        class FakeProvider:
+            def state(self): return dict(ready=True, name='Hermes fixture', reason='')
+            def complete(self, agent, findings, messages): return 'English meeting contribution [source1]'
+        self.app.provider = FakeProvider()
+        evidence = [dict(id='source1', title='fixture', url='https://docs.flap.sh/', summary='fixture', agentId='hex', createdAt=backend.now())]
+        with patch.object(backend, 'collect_sources', return_value=dict(findings=evidence, errors=[])):
+            result = self.app.run_once()
+        self.assertFalse(self.app.state()['running'])
+        self.assertEqual(result['meetings'][0]['status'], 'completed')
+        self.assertEqual(len(result['proposals']), 1)
+
     def test_provider_http_contract(self):
         from unittest.mock import patch
         import io, json

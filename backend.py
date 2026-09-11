@@ -251,6 +251,12 @@ class App:
             self.worker.start()
             return dict(meeting)
 
+    def run_once(self):
+        """Run one Hermes-owned cycle and wait until every message is persisted."""
+        self.start_meeting()
+        self.worker.join()
+        return self.state()
+
     def _persist_meeting(self, meeting):
         with self.lock:
             state = self.load()

@@ -137,7 +137,8 @@ def main():
     import os
     import threading
     root = Path(__file__).resolve().parent
-    if os.environ.get('LLM_API_KEY'):
+    role = os.environ.get('FLY_ROLE', 'web' if os.environ.get('PORT') else 'local')
+    if role == 'web' or os.environ.get('LLM_API_KEY'):
         provider = backend.Provider(os.environ)
     else:
         from local_provider import HermesProvider
@@ -145,7 +146,8 @@ def main():
         threading.Thread(target=provider.verify, daemon=True).start()
     app = backend.App(root / 'data' / 'company.sqlite3', provider)
     stop = threading.Event()
-    threading.Thread(target=app.scheduler_loop, args=(stop,), daemon=True).start()
+    if role in ('local', 'worker'):
+        threading.Thread(target=app.scheduler_loop, args=(stop,), daemon=True).start()
     bind_host = os.environ.get('HOST', '0.0.0.0' if os.environ.get('PORT') else '127.0.0.1')
     port = int(os.environ.get('PORT', '4775'))
     httpd = make_server(app, root/'public', port=port, bind_host=bind_host)

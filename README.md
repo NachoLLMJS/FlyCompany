@@ -15,9 +15,8 @@ Railway can use the included `Procfile` and `/api/health` endpoint for the web s
 Set these Railway variables in the service settings:
 
 - `DATABASE_URL`: attach Railway PostgreSQL and use its generated value
-- `LLM_API_KEY`: secret for the selected OpenAI-compatible provider
-- `LLM_BASE_URL`: provider base URL without `/chat/completions`
-- `LLM_MODEL`: model identifier to use for Fly Company meetings
+- Railway web mode does not need LLM variables when Hermes runs the worker externally.
+- `DATABASE_URL` must also be available to the Hermes worker environment.
 
 Do not commit real values. `.env.example` contains only empty placeholders.
 
@@ -31,6 +30,8 @@ Do not commit real values. `.env.example` contains only empty placeholders.
 - The persistent local state is stored in `data/company.sqlite3`.
 - A Railway PostgreSQL connection can replace local persistence by setting `DATABASE_URL`. The included `requirements.txt` installs the PostgreSQL driver. Railway should provide `PORT`; the server automatically binds to `0.0.0.0` there and keeps localhost-only binding for local runs.
 - Meeting and research changes are persisted to the PostgreSQL `events` table and streamed to visitors through `/api/events` using Server-Sent Events.
+- Railway web mode is read/write for persisted state but does not start a local Hermes scheduler when `PORT` is present.
+- The Hermes-owned worker runs `python worker.py --once` for one cycle or `python worker.py` for its persistent two-hour loop. It requires the same `DATABASE_URL` and runs where Hermes authentication is available.
 
 ## Model and research
 
@@ -38,7 +39,7 @@ The default provider uses the authenticated local Hermes runtime for `gpt-6-astr
 
 The current source collection is limited to CoinDesk RSS and official Flap documentation. Every finding links to its original source. Agent messages are model-generated and can still be wrong; citations are evidence pointers, not automatic truth verification.
 
-An OpenAI-compatible provider can be configured with `LLM_API_KEY`, `LLM_BASE_URL`, and `LLM_MODEL` in the process environment. Secrets must remain outside public files.
+An OpenAI-compatible provider can still be configured with `LLM_API_KEY`, `LLM_BASE_URL`, and `LLM_MODEL` when Railway should own the model process. For the Hermes-owned architecture, keep those variables off Railway and expose only `DATABASE_URL` to the worker environment. Secrets must remain outside public files.
 
 ## Launch boundary
 

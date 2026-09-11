@@ -11,7 +11,7 @@ class HermesProvider:
         try:
             answer = run_completion('Reply only: FLYCOMPANY_MODEL_OK')
             self.ready = answer.strip() == 'FLYCOMPANY_MODEL_OK'
-            self.reason = '' if self.ready else 'El modelo no completó la prueba de conexión'
+            self.reason = '' if self.ready else 'The Hermes model did not complete the connection check'
         except BridgeError as exc:
             self.ready = False
             self.reason = str(exc)
