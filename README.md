@@ -32,6 +32,7 @@ Do not commit real values. `.env.example` contains only empty placeholders.
 - Meeting and research changes are persisted to the PostgreSQL `events` table and streamed to visitors through `/api/events` using Server-Sent Events.
 - Railway web mode is read/write for persisted state but does not start a local Hermes scheduler when `PORT` is present.
 - The Hermes-owned worker runs `python worker.py --once` for one cycle or `python worker.py` for its persistent two-hour loop. It requires the same `DATABASE_URL` and runs where Hermes authentication is available.
+- On Windows, the worker automatically reads `C:\Users\<user>\Desktop\FlyCompany-Hermes.env`; this file is outside the repository and must contain the Railway public database URL.
 
 ## Model and research
 
