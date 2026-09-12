@@ -26,6 +26,11 @@ class XPublisherTests(unittest.TestCase):
         self.assertNotIn('The recurring opening says', text)
         self.assertLessEqual(len(text.split()), 30)
 
+    def test_tweet_removes_dash_characters(self):
+        text = XPublisher.tweet_text('Review unresolved evidence — not branding or launch dates. Follow up with the team.', 'meeting')
+        self.assertNotRegex(text, r'[-–—−]')
+        self.assertLessEqual(len(text.split()), 30)
+
     def test_bearer_token_alone_cannot_publish(self):
         publisher = XPublisher({
             'X_POST_MEETINGS': 'true',

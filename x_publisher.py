@@ -38,7 +38,7 @@ class XPublisher:
 
     @staticmethod
     def tweet_text(summary, meeting_id=None, recent_texts=()):
-        normalized = ' '.join(str(summary or '').split())
+        normalized = ' '.join(str(summary or '').replace('—', ' ').replace('–', ' ').replace('−', ' ').replace('-', ' ').split())
         sentences = [part.strip() for part in re.split(r'(?<=[.!?])\s+', normalized) if part.strip()]
         candidates = []
         for selected in reversed(sentences):
