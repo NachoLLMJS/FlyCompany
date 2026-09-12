@@ -7,7 +7,10 @@ web service.
 import argparse
 import os
 import threading
+import time
 from pathlib import Path
+
+MEETING_TIMEOUT_SECONDS = 15 * 60
 
 import backend
 from local_provider import HermesProvider
@@ -43,7 +46,18 @@ def main():
         raise SystemExit('Hermes model access is unavailable: ' + provider.reason)
     app = backend.App(root / 'data' / 'company.sqlite3', provider)
     if args.once:
-        app.run_once()
+        app.start_meeting()
+        deadline = time.monotonic() + MEETING_TIMEOUT_SECONDS
+        while app.worker and app.worker.is_alive() and time.monotonic() < deadline:
+            app.worker.join(timeout=1)
+        if app.worker and app.worker.is_alive():
+            with app.lock:
+                state = app.load()
+                for meeting in state.get('meetings', []):
+                    if meeting.get('status') == 'running':
+                        meeting.update(status='interrupted', endedAt=backend.now(), summary='Meeting timed out before completion. No tweet was attempted.')
+                app.save(state)
+            raise SystemExit('Fly Company Hermes cycle timed out after 15 minutes')
         print('Fly Company Hermes cycle completed', flush=True)
         return
     stop = threading.Event()
