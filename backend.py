@@ -315,9 +315,10 @@ class App:
                 state['memories'] = {msg['agentId']: msg['text'][-1400:] for msg in meeting['messages']}
                 state['proposals'].insert(0, dict(id=uuid.uuid4().hex, meetingId=meeting['id'], title='Proposal for human review — not a launch', summary=meeting['summary'], status='pending', createdAt=now(), approvedAt=None, execution='planning-only'))
                 state['proposals'] = state['proposals'][:100]
+                recent_texts = [item.get('xPost', {}).get('text', '') for item in state['meetings'] if item.get('xPost', {}).get('text')]
                 self.save(state)
-            post = self.x_publisher.post(meeting['summary'], meeting.get('id'))
-            meeting['xPost'] = {'posted': post.get('posted', False), 'tweetId': post.get('tweetId'), 'reason': post.get('reason', '')}
+            post = self.x_publisher.post(meeting['summary'], meeting.get('id'), recent_texts)
+            meeting['xPost'] = {'posted': post.get('posted', False), 'tweetId': post.get('tweetId'), 'reason': post.get('reason', ''), 'text': post.get('text', '')}
         except Exception as exc:
             meeting.update(status='blocked' if isinstance(exc, Blocked) else 'failed', summary=str(exc) if isinstance(exc, Blocked) else 'Provider or network failure (' + type(exc).__name__ + '). No transaction was executed.', endedAt=now())
         finally:

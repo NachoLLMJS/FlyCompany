@@ -10,10 +10,12 @@ class XPublisherTests(unittest.TestCase):
         self.assertLessEqual(len(text), 280)
 
     def test_meeting_hint_prevents_identical_posts(self):
-        summary = 'A repeated meeting decision with the same opening text'
+        summary = 'A repeated meeting decision with the same opening text. A new research task follows.'
         first = XPublisher.tweet_text(summary, 'first-meeting')
-        second = XPublisher.tweet_text(summary, 'second-meeting')
+        second = XPublisher.tweet_text(summary, 'second-meeting', [first])
         self.assertNotEqual(first, second)
+        self.assertNotIn('first-meeting', first)
+        self.assertNotIn('second-meeting', second)
         self.assertLessEqual(len(first.split()), 30)
         self.assertLessEqual(len(second.split()), 30)
 

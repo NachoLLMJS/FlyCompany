@@ -37,16 +37,19 @@ class XPublisher:
         return ''
 
     @staticmethod
-    def tweet_text(summary, meeting_id=None):
+    def tweet_text(summary, meeting_id=None, recent_texts=()):
         normalized = ' '.join(str(summary or '').split())
         sentences = [part.strip() for part in re.split(r'(?<=[.!?])\s+', normalized) if part.strip()]
-        selected = sentences[-1] if sentences else normalized
-        words = selected.split()
-        if len(words) < 8 and len(sentences) > 1:
-            words = (sentences[-2] + ' ' + selected).split()
-        hint = ''.join(ch for ch in str(meeting_id or '') if ch.isalnum())[:8]
-        suffix = [f'Meeting {hint}'] if hint else []
-        return ' '.join(['Fly Company meeting:'] + words[:25] + suffix)[:280].rstrip()
+        candidates = []
+        for selected in reversed(sentences):
+            words = selected.split()
+            if len(words) < 8 and len(sentences) > 1:
+                words = (sentences[max(0, sentences.index(selected) - 1)] + ' ' + selected).split()
+            candidates.append(' '.join(['Fly Company meeting:'] + words[:27])[:280].rstrip())
+        if not candidates:
+            candidates = ['Fly Company meeting:']
+        previous = set(recent_texts or ())
+        return next((text for text in candidates if text not in previous), candidates[0])
 
     @staticmethod
     def _quote(value):
@@ -71,10 +74,10 @@ class XPublisher:
         oauth['oauth_signature'] = base64.b64encode(digest).decode()
         return 'OAuth ' + ', '.join(f'{self._quote(k)}="{self._quote(v)}"' for k, v in sorted(oauth.items()))
 
-    def post(self, summary, meeting_id=None):
+    def post(self, summary, meeting_id=None, recent_texts=()):
         if not self.configured():
             return {'posted': False, 'reason': self.reason()}
-        text = self.tweet_text(summary, meeting_id)
+        text = self.tweet_text(summary, meeting_id, recent_texts)
         request = urllib.request.Request(
             self.endpoint,
             data=json.dumps({'text': text}).encode('utf-8'),
