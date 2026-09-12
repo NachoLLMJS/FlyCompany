@@ -303,7 +303,7 @@ class App:
             meeting['sourceErrors'] = result['errors']
             memories = self.load().get('memories', {})
             for original in AGENTS + [AGENTS[0]]:
-                agent = dict(original, memory=memories.get(original['id'], ''))
+                agent = dict(original, memory=memories.get(original['id'], ''), cycleId=meeting['id'])
                 text = self.provider.complete(agent, findings, meeting['messages'])
                 if not isinstance(text, str) or not text.strip():
                     raise Blocked('Provider returned no text')

@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 import os
+import re
 import secrets
 import time
 import urllib.parse
@@ -37,7 +38,12 @@ class XPublisher:
 
     @staticmethod
     def tweet_text(summary, meeting_id=None):
-        words = ' '.join(str(summary or '').split()).split(' ')
+        normalized = ' '.join(str(summary or '').split())
+        sentences = [part.strip() for part in re.split(r'(?<=[.!?])\s+', normalized) if part.strip()]
+        selected = sentences[-1] if sentences else normalized
+        words = selected.split()
+        if len(words) < 8 and len(sentences) > 1:
+            words = (sentences[-2] + ' ' + selected).split()
         hint = ''.join(ch for ch in str(meeting_id or '') if ch.isalnum())[:8]
         suffix = [f'Meeting {hint}'] if hint else []
         return ' '.join(['Fly Company meeting:'] + words[:25] + suffix)[:280].rstrip()

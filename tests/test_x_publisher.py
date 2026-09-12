@@ -17,6 +17,13 @@ class XPublisherTests(unittest.TestCase):
         self.assertLessEqual(len(first.split()), 30)
         self.assertLessEqual(len(second.split()), 30)
 
+    def test_tweet_uses_the_conclusion_instead_of_repeated_opening(self):
+        summary = 'The recurring opening says no launch. New evidence requires a different research test before any decision.'
+        text = XPublisher.tweet_text(summary, 'meeting-123')
+        self.assertIn('New evidence requires', text)
+        self.assertNotIn('The recurring opening says', text)
+        self.assertLessEqual(len(text.split()), 30)
+
     def test_bearer_token_alone_cannot_publish(self):
         publisher = XPublisher({
             'X_POST_MEETINGS': 'true',
