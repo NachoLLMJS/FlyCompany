@@ -316,7 +316,7 @@ class App:
                 state['proposals'].insert(0, dict(id=uuid.uuid4().hex, meetingId=meeting['id'], title='Proposal for human review — not a launch', summary=meeting['summary'], status='pending', createdAt=now(), approvedAt=None, execution='planning-only'))
                 state['proposals'] = state['proposals'][:100]
                 self.save(state)
-            post = self.x_publisher.post(meeting['summary'])
+            post = self.x_publisher.post(meeting['summary'], meeting.get('id'))
             meeting['xPost'] = {'posted': post.get('posted', False), 'tweetId': post.get('tweetId'), 'reason': post.get('reason', '')}
         except Exception as exc:
             meeting.update(status='blocked' if isinstance(exc, Blocked) else 'failed', summary=str(exc) if isinstance(exc, Blocked) else 'Provider or network failure (' + type(exc).__name__ + '). No transaction was executed.', endedAt=now())

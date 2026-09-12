@@ -36,9 +36,11 @@ class XPublisher:
         return ''
 
     @staticmethod
-    def tweet_text(summary):
+    def tweet_text(summary, meeting_id=None):
         words = ' '.join(str(summary or '').split()).split(' ')
-        return ' '.join(['Fly Company meeting:'] + words[:27])[:280].rstrip()
+        hint = ''.join(ch for ch in str(meeting_id or '') if ch.isalnum())[:8]
+        suffix = [f'Meeting {hint}'] if hint else []
+        return ' '.join(['Fly Company meeting:'] + words[:25] + suffix)[:280].rstrip()
 
     @staticmethod
     def _quote(value):
@@ -63,10 +65,10 @@ class XPublisher:
         oauth['oauth_signature'] = base64.b64encode(digest).decode()
         return 'OAuth ' + ', '.join(f'{self._quote(k)}="{self._quote(v)}"' for k, v in sorted(oauth.items()))
 
-    def post(self, summary):
+    def post(self, summary, meeting_id=None):
         if not self.configured():
             return {'posted': False, 'reason': self.reason()}
-        text = self.tweet_text(summary)
+        text = self.tweet_text(summary, meeting_id)
         request = urllib.request.Request(
             self.endpoint,
             data=json.dumps({'text': text}).encode('utf-8'),

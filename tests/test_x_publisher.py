@@ -5,9 +5,17 @@ from x_publisher import XPublisher
 
 class XPublisherTests(unittest.TestCase):
     def test_tweet_text_is_at_most_30_words_and_280_chars(self):
-        text = XPublisher.tweet_text(' '.join(f'word{i}' for i in range(100)))
+        text = XPublisher.tweet_text(' '.join(f'word{i}' for i in range(100)), 'meeting-123')
         self.assertLessEqual(len(text.split()), 30)
         self.assertLessEqual(len(text), 280)
+
+    def test_meeting_hint_prevents_identical_posts(self):
+        summary = 'A repeated meeting decision with the same opening text'
+        first = XPublisher.tweet_text(summary, 'first-meeting')
+        second = XPublisher.tweet_text(summary, 'second-meeting')
+        self.assertNotEqual(first, second)
+        self.assertLessEqual(len(first.split()), 30)
+        self.assertLessEqual(len(second.split()), 30)
 
     def test_bearer_token_alone_cannot_publish(self):
         publisher = XPublisher({
