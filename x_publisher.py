@@ -41,11 +41,13 @@ class XPublisher:
         normalized = ' '.join(str(summary or '').replace('—', ' ').replace('–', ' ').replace('−', ' ').replace('-', ' ').split())
         sentences = [part.strip() for part in re.split(r'(?<=[.!?])\s+', normalized) if part.strip()]
         candidates = []
+        prefixes = ['Fly Company meeting:', 'Fly Company update:', 'Fly Company finding:']
         for selected in reversed(sentences):
             words = selected.split()
             if len(words) < 8 and len(sentences) > 1:
                 words = (sentences[max(0, sentences.index(selected) - 1)] + ' ' + selected).split()
-            candidates.append(' '.join(['Fly Company meeting:'] + words[:27])[:280].rstrip())
+            for prefix in prefixes:
+                candidates.append(' '.join([prefix] + words[:27])[:280].rstrip())
         if not candidates:
             candidates = ['Fly Company meeting:']
         previous = set(recent_texts or ())

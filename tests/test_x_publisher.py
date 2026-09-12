@@ -13,11 +13,15 @@ class XPublisherTests(unittest.TestCase):
         summary = 'A repeated meeting decision with the same opening text. A new research task follows.'
         first = XPublisher.tweet_text(summary, 'first-meeting')
         second = XPublisher.tweet_text(summary, 'second-meeting', [first])
-        self.assertNotEqual(first, second)
+        third = XPublisher.tweet_text(summary, 'third-meeting', [first, second])
+        self.assertEqual(len({first, second, third}), 3)
+        for text in (first, second, third):
+            self.assertNotRegex(text, r'[-–—−]')
+            self.assertNotRegex(text, r'Meeting\s+[0-9a-z-]+')
+            self.assertLessEqual(len(text.split()), 30)
         self.assertNotIn('first-meeting', first)
         self.assertNotIn('second-meeting', second)
-        self.assertLessEqual(len(first.split()), 30)
-        self.assertLessEqual(len(second.split()), 30)
+        self.assertNotIn('third-meeting', third)
 
     def test_tweet_uses_the_conclusion_instead_of_repeated_opening(self):
         summary = 'The recurring opening says no launch. New evidence requires a different research test before any decision.'
