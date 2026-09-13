@@ -19,7 +19,10 @@ from local_provider import HermesProvider
 def load_worker_env():
     """Load the desktop worker env without overwriting existing secrets."""
     default_path = Path.home() / 'Desktop' / 'FlyCompany-Hermes.env'
-    env_path = Path(os.environ.get('FLYCOMPANY_ENV_FILE', default_path))
+    organized_path = Path.home() / 'Desktop' / 'Archivos organizados' / 'Configuracion y datos' / 'FlyCompany-Hermes.env'
+    configured_path = os.environ.get('FLYCOMPANY_ENV_FILE')
+    candidates = [Path(configured_path)] if configured_path else [default_path, organized_path]
+    env_path = next((path for path in candidates if path.is_file()), candidates[0])
     if not env_path.is_file():
         return env_path
     for raw in env_path.read_text(encoding='utf-8').splitlines():
