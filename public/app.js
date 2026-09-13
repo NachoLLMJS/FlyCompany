@@ -15,6 +15,8 @@ function boot() {
   const meeting=()=>state?.meetings?.find(m=>m.id===selectedMeeting);
   const empty=text=>`<div class="empty">${esc(text)}</div>`;
   function notice(text){$('#notice span').textContent=text;$('#notice').hidden=false;}
+  const tokenAddress=$('#token-address')?.textContent.trim();
+  $('#copy-token-address')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(tokenAddress);$('#token-copy-status').textContent='Copied';}catch{$('#token-copy-status').textContent='Copy failed';}});
   $('#notice button').onclick=()=>$('#notice').hidden=true;
   async function request(path,body){
     const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(120000)});
