@@ -1,4 +1,4 @@
-Fly Company scientific visual model
+Fruit Fly company scientific visual model
 
 Original model: NeuroMechFly v2 / FlyGym, NeLy-EPFL and contributors.
 https://github.com/NeLy-EPFL/flygym

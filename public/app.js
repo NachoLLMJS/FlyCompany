@@ -15,8 +15,6 @@ function boot() {
   const meeting=()=>state?.meetings?.find(m=>m.id===selectedMeeting);
   const empty=text=>`<div class="empty">${esc(text)}</div>`;
   function notice(text){$('#notice span').textContent=text;$('#notice').hidden=false;}
-  const tokenAddress=$('#token-address')?.textContent.trim();
-  $('#copy-token-address')?.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(tokenAddress);$('#token-copy-status').textContent='Copied';}catch{$('#token-copy-status').textContent='Copy failed';}});
   $('#notice button').onclick=()=>$('#notice').hidden=true;
   async function request(path,body){
     const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:body===undefined?{}:{'Content-Type':'application/json'},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(120000)});
@@ -137,7 +135,7 @@ function makeScene(T,OrbitControls,model,container,onSelect,inMeeting){
   box(18,3.7,.2,material('#d5cfbb'),0,1.85,-7.05);
   for(let i=0;i<15;i++)box(.05,3.4,.09,wood,-8.3+i*1.18,1.85,-6.88);
   box(6.7,2.15,.12,dark,-4.4,2.3,-6.87);
-  const signCanvas=document.createElement('canvas');signCanvas.width=1024;signCanvas.height=360;const ctx=signCanvas.getContext('2d');ctx.fillStyle='#343d35';ctx.fillRect(0,0,1024,360);ctx.fillStyle='#e5d9b9';ctx.font='500 88px Arial';ctx.fillText('FLY COMPANY',66,166);ctx.font='22px monospace';ctx.fillStyle='#acaa8b';ctx.fillText('SMALL MINDS. BIG QUESTIONS.',72,230);const signTexture=new T.CanvasTexture(signCanvas);signTexture.colorSpace=T.SRGBColorSpace;mesh(new T.PlaneGeometry(6.3,2.12),new T.MeshBasicMaterial({map:signTexture}),-4.4,2.3,-6.79);
+  const signCanvas=document.createElement('canvas');signCanvas.width=1024;signCanvas.height=360;const ctx=signCanvas.getContext('2d');ctx.fillStyle='#343d35';ctx.fillRect(0,0,1024,360);ctx.fillStyle='#e5d9b9';ctx.font='500 76px Arial';ctx.fillText('FRUIT FLY COMPANY',66,166);ctx.font='22px monospace';ctx.fillStyle='#acaa8b';ctx.fillText('SMALL MINDS. BIG QUESTIONS.',72,230);const signTexture=new T.CanvasTexture(signCanvas);signTexture.colorSpace=T.SRGBColorSpace;mesh(new T.PlaneGeometry(6.3,2.12),new T.MeshBasicMaterial({map:signTexture}),-4.4,2.3,-6.79);
   // Circular forum, recessed bronze ring, notebooks and warm task lighting.
   cyl(3.05,.025,material('#a8a48e'),0,.015,0);cyl(2.25,.15,dark,0,.88,0);cyl(2.27,.035,gold,0,.82,0);cyl(.85,.8,dark,0,.4,0);cyl(1.02,.055,gold,0,.06,0);cyl(.46,.012,gold,0,.968,0);
   for(let i=0;i<6;i++){const a=i*Math.PI/3;const x=Math.sin(a),z=Math.cos(a);const book=box(.39,.035,.28,white,x*1.72,.98,z*1.72);book.rotation.y=a;const pencil=box(.26,.018,.022,gold,x*1.72,1.01,z*1.72+.17);pencil.rotation.y=a;}
